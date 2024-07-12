@@ -169,12 +169,184 @@
             </div>
         </div>
     </body>
+    <script>
+
+      const userId = (Math.random() + 1).toString(36).substring(7);
+      const botmanInterval = setInterval(checkBotman, 1000);
+
+      function checkBotman() {
+
+        const elChatBotManFrame = document.getElementById('chatBotManFrame');
+
+        if (elChatBotManFrame) {
+
+          const elChatWidget = elChatBotManFrame.contentWindow.document.getElementById('botmanChatRoot');
+          const elMessageArea = elChatBotManFrame.contentWindow.document.getElementById('messageArea');
+          const elTextInput = elChatBotManFrame.contentWindow.document.getElementById('userText');
+
+          if (!elChatWidget || !elMessageArea || !elTextInput) {
+            return;
+          }
+
+          clearInterval(botmanInterval);
+
+          // Append the file upload component to the DOM
+          const elFileInputContainer = document.createElement('div');
+          elFileInputContainer.innerHTML = `
+            <style>
+               .gg-software-upload {
+                 box-sizing: border-box;
+                 position: relative;
+                 display: block;
+                 transform: scale(var(--ggs,1));
+                 width: 16px;
+                 height: 6px;
+                 border: 2px solid;
+                 border-top: 0;
+                 border-bottom-left-radius: 2px;
+                 border-bottom-right-radius: 2px;
+                 margin-top: 8px
+              }
+              .gg-software-upload::after {
+                 content: "";
+                 display: block;
+                 box-sizing: border-box;
+                 position: absolute;
+                 width: 8px;
+                 height: 8px;
+                 border-left: 2px solid;
+                 border-top: 2px solid;
+                 transform: rotate(45deg);
+                 left: 2px;
+                 bottom: 4px
+              }
+              .gg-software-upload::before {
+                 content: "";
+                 display: block;
+                 box-sizing: border-box;
+                 position: absolute;
+                 border-radius: 3px;
+                 width: 2px;
+                 height: 10px;
+                 background: currentColor;
+                 left: 5px;
+                 bottom: 3px
+              }
+              .hidden {
+                display: none !important;
+              }
+              .file-input {
+                width: 92%;
+                position: fixed;
+                display: flex;
+                bottom: 0;
+                padding: 15px;
+                background: #ffffff;
+                box-shadow: 0 -6px 12px 0 rgba(235,235,235,.95);
+              }
+              .file-input input {
+                width: 90%;
+                overflow: hidden;
+              }
+              .disabled {
+                display: none;
+              }
+              .file-upload-btn {
+                align-self: center;
+                margin-left: auto;
+                cursor: pointer;
+              }
+            </style>
+            <div class="file-input hidden">
+              <input type="file" name="file" id="file" />
+              <i class="gg-software-upload file-upload-btn disabled"></i>
+            </div>
+          `;
+          elChatWidget.append(elFileInputContainer);
+
+          const elFileUploadBtn = elChatBotManFrame.contentWindow.document.getElementsByClassName('file-upload-btn')[0];
+          const elFileInput = elChatBotManFrame.contentWindow.document.getElementsByClassName('file-input')[0];
+          const elFile = elChatBotManFrame.contentWindow.document.getElementById('file');
+          const selection = [];
+
+          elFile.addEventListener('change', event => {
+            const files = event.target.files;
+            if (files.length > 0) {
+              selection.push(files); // push the whole FileList
+              elFileUploadBtn.classList.toggle('disabled'); // show upload button
+            }
+          });
+
+          elFileUploadBtn.addEventListener('click', event => {
+
+            for (let i=0; i<selection.length; i++) {
+              for (let j=0; j<selection[i].length; j++) {
+
+                const file = selection[i][j];
+                const filename = file['name'];
+                const form = new FormData();
+
+                form.append("driver", "web");
+                form.append("attachment", "file"); // audio | video | location | file
+                form.append("interactive", "0");
+                form.append("file", file);
+                form.append("userId", userId);
+
+                const options = {
+                  method: 'POST',
+                  body: form,
+                };
+
+                fetch(window.location.origin + "/botman", options).then(response => {
+                    if (response.status === 200) {
+                      window.botmanChatWidget.sayAsBot('Your file ' + filename + ' has been sent :-)');
+                    } else {
+                      window.botmanChatWidget.sayAsBot('Your file ' + filename + ' could not be sent :-(');
+                    }
+                  });
+              }
+            }
+
+            selection.length = 0; // remove selected files
+            elFile.value = ""; // reset file-input
+            elFileInput.classList.toggle('hidden'); // hide file-input
+            elFileUploadBtn.classList.toggle('disabled'); // hide upload button
+            elTextInput.classList.toggle('hidden'); // display text area
+            elTextInput.focus(); // set focus on text area
+          });
+
+          // Observe incoming messages and react accordingly
+          const observer = new MutationObserver(mutations => {
+            mutations.forEach(mutation => {
+              mutation.addedNodes.forEach(addedNode => {
+
+                // If the bot asks for a file upload, display the file input instead of the text area
+                if (addedNode.classList.contains('chatbot')) {
+                  const elMessage = addedNode.getElementsByTagName('p')[0].innerText;
+                  if (/.*(upload|téléverser?).*/i.test(elMessage)) {
+                    elTextInput.classList.toggle('hidden');
+                    elFileInput.classList.toggle('hidden');
+                  }
+                }
+              });
+            });
+          });
+
+          const elChatArea = elMessageArea.getElementsByClassName('chat')[0];
+
+          observer.observe(elChatArea, { subtree: false, childList: true });
+        }
+      }
+    </script>
     <link rel="stylesheet"
           type="text/css"
           href="https://cdn.jsdelivr.net/npm/botman-web-widget@0/build/assets/css/chat.min.css">
     <script>
-      const botmanWidget = {
-        aboutText: 'ssdsd', introMessage: "✋ Hi! I'm from ComputableFacts"
+      window.botmanWidget = {
+        title: 'BotMan',
+        aboutText: 'Powered by ComputableFacts',
+        aboutLink: 'https://computablefacts.com',
+        userId: userId,
       };
     </script>
     <script src='https://cdn.jsdelivr.net/npm/botman-web-widget@0/build/js/widget.js'></script>
